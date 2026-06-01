@@ -32,7 +32,7 @@ export default function LoaderScreen() {
       setProgress((old) => {
         if (old >= 100) {
           clearInterval(interval);
-          setTimeout(() => router.replace("/"), 3000);
+          setTimeout(() => router.replace("/login"), 2000);
           return 100;
         }
         return old + 2;
