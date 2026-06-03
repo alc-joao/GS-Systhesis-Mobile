@@ -1,15 +1,31 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
+  Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+
+type Planet = "Marte" | "Lua";
+type ColonyStatus = "Estável" | "Alerta";
+
+type Colony = {
+  id: string;
+  name: string;
+  planet: Planet;
+  status: ColonyStatus;
+  day: number;
+  level: number;
+  xp: number;
+};
 
 type Star = {
   top: number;
@@ -21,22 +37,81 @@ type Star = {
 export default function HomeScreen() {
   const stars = useMemo<Star[]>(
     () =>
-      Array.from({ length: 180 }).map(() => ({
+      Array.from({ length: 260 }).map(() => ({
         top: Math.random() * 100,
         left: Math.random() * 100,
-        size: Math.random() > 0.9 ? 2.2 : 1.1,
+        size: Math.random() > 0.97 ? 3 : Math.random() > 0.82 ? 2 : 1,
         opacity: Math.random() * 0.8 + 0.2,
       })),
     []
   );
+
+  const [colonies, setColonies] = useState<Colony[]>([
+    {
+      id: "1",
+      name: "Base Ares-01",
+      planet: "Marte",
+      status: "Estável",
+      day: 23,
+      level: 12,
+      xp: 2450,
+    },
+    {
+      id: "2",
+      name: "Base Artemis",
+      planet: "Lua",
+      status: "Alerta",
+      day: 17,
+      level: 8,
+      xp: 1180,
+    },
+  ]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [colonyName, setColonyName] = useState("");
+  const [selectedPlanet, setSelectedPlanet] = useState<Planet>("Marte");
+
+  function handleOpenColony(colony: Colony) {
+    router.push({
+      pathname: "/colony-dashboard",
+      params: {
+        id: colony.id,
+        name: colony.name,
+        planet: colony.planet,
+        status: colony.status,
+        day: colony.day,
+        level: colony.level,
+        xp: colony.xp,
+      },
+    });
+  }
+
+  function handleCreateColony() {
+    if (!colonyName.trim()) return;
+
+    const newColony: Colony = {
+      id: String(Date.now()),
+      name: colonyName.trim(),
+      planet: selectedPlanet,
+      status: "Estável",
+      day: 1,
+      level: 1,
+      xp: 0,
+    };
+
+    setColonies((current) => [newColony, ...current]);
+    setColonyName("");
+    setSelectedPlanet("Marte");
+    setModalVisible(false);
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar hidden />
 
       <LinearGradient
-        colors={["#020617", "#030712", "#061021", "#020617"]}
-        locations={[0, 0.35, 0.7, 1]}
+        colors={["#020617", "#030712", "#08111f", "#020617"]}
+        locations={[0, 0.35, 0.72, 1]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -61,12 +136,12 @@ export default function HomeScreen() {
       <LinearGradient
         colors={[
           "rgba(59,130,246,0)",
-          "rgba(59,130,246,0.16)",
-          "rgba(168,85,247,0.14)",
+          "rgba(59,130,246,0.08)",
+          "rgba(168,85,247,0.07)",
           "rgba(2,6,23,0)",
         ]}
         locations={[0, 0.35, 0.65, 1]}
-        style={styles.milkyWay}
+        style={styles.galaxyGlow}
       />
 
       <ScrollView
@@ -74,210 +149,181 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.greeting}>Olá, Comandante! 👋</Text>
+          <Text style={styles.title}>MINHAS COLÔNIAS</Text>
 
-          <Pressable onPress={() => router.push("/alerts")} style={styles.bellButton}>
-            <Ionicons name="notifications-outline" size={25} color="#FFFFFF" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>1</Text>
-            </View>
+          <Pressable
+            style={styles.plusButton}
+            onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name="add" size={31} color="#FFFFFF" />
           </Pressable>
         </View>
 
-        <View style={styles.mainColonyCard}>
-          <LinearGradient
-            colors={[
-              "rgba(127,29,29,0.72)",
-              "rgba(88,28,135,0.28)",
-              "rgba(15,23,42,0.86)",
+        {colonies.map((colony) => (
+          <Pressable
+            key={colony.id}
+            style={[
+              styles.colonyCard,
+              colony.planet === "Marte" ? styles.marsCard : styles.moonCard,
             ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
+            onPress={() => handleOpenColony(colony)}
+          >
+            <Image
+              source={
+                colony.planet === "Marte"
+                  ? require("../assets/images/imgs/base-marte.png")
+                  : require("../assets/images/imgs/base-lua.png")
+              }
+              style={styles.cardPhoto}
+              resizeMode="cover"
+            />
 
-          <View style={styles.planetGlow} />
-          <View style={styles.dome} />
-          <View style={styles.domeBase} />
-          <View style={styles.antenna} />
+            <LinearGradient
+              colors={[
+                "rgba(0,0,0,0.22)",
+                "rgba(0,0,0,0.00)",
+                "rgba(0,0,0,0.74)",
+              ]}
+              locations={[0, 0.5, 1]}
+              style={styles.cardOverlay}
+            >
+              <View style={styles.cardTop}>
+                <View>
+                  <Text style={styles.colonyName}>{colony.name}</Text>
+                  <Text style={styles.planetText}>{colony.planet}</Text>
+                </View>
 
-          <View style={styles.cardTop}>
-            <View>
-              <Text style={styles.colonyTitle}>BASE ARES-01</Text>
-              <Text style={styles.planetText}>MARTE</Text>
-            </View>
-
-            <View style={styles.statusStable}>
-              <Text style={styles.statusStableText}>ESTÁVEL</Text>
-            </View>
-          </View>
-
-          <View style={styles.colonyInfoRow}>
-            <View>
-              <Text style={styles.dayText}>DIA 23</Text>
-              <Text style={styles.expText}>EXP 2.450 / 3.000</Text>
-
-              <View style={styles.expTrack}>
-                <LinearGradient
-                  colors={["#0EA5E9", "#38BDF8"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.expFill}
-                />
+                <View
+                  style={[
+                    styles.statusBadge,
+                    colony.status === "Alerta" && styles.statusAlert,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      colony.status === "Alerta" && styles.statusAlertText,
+                    ]}
+                  >
+                    {colony.status.toUpperCase()}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.levelCircle}>
-              <Text style={styles.levelLabel}>NÍVEL</Text>
-              <Text style={styles.levelNumber}>12</Text>
-            </View>
-          </View>
-        </View>
+              <View style={styles.infoBar}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.dot}>•</Text>
+                  <Text style={styles.infoText}>Dia {colony.day}</Text>
+                </View>
 
-        <Text style={styles.sectionTitle}>RECURSOS DA COLÔNIA</Text>
+                <View style={styles.divider} />
 
-        <View style={styles.resourcesGrid}>
-          <ResourceCard
-            icon="water"
-            label="ÁGUA"
-            value="72%"
-            variation="+2%"
-            color="#38BDF8"
-            progress={72}
-          />
+                <View style={styles.infoItem}>
+                  <MaterialCommunityIcons
+                    name="medal-outline"
+                    size={17}
+                    color="#CBD5E1"
+                  />
+                  <Text style={styles.infoText}>Nível {colony.level}</Text>
+                </View>
 
-          <ResourceCard
-            icon="lightning-bolt"
-            label="ENERGIA"
-            value="68%"
-            variation="-5%"
-            color="#FACC15"
-            progress={68}
-          />
+                <View style={styles.divider} />
 
-          <ResourceCard
-            icon="cloud"
-            label="OXIGÊNIO"
-            value="81%"
-            variation="+1%"
-            color="#2DD4BF"
-            progress={81}
-          />
+                <View style={styles.infoItem}>
+                  <MaterialCommunityIcons
+                    name="rocket-launch"
+                    size={17}
+                    color="#FBBF24"
+                  />
+                  <Text style={styles.infoText}>
+                    {colony.xp.toLocaleString("pt-BR")} XP
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </Pressable>
+        ))}
 
-          <ResourceCard
-            icon="food-apple"
-            label="ALIMENTO"
-            value="45%"
-            color="#EF4444"
-            progress={45}
-          />
-
-          <ResourceCard
-            icon="thermometer"
-            label="TEMPERATURA"
-            value="22°C"
-            subtitle="Estável"
-            color="#C084FC"
-            progress={0}
-          />
-
-          <ResourceCard
-            icon="account-group"
-            label="TRIPULAÇÃO"
-            value="12"
-            subtitle="Saudável"
-            color="#7DD3FC"
-            progress={0}
-          />
-        </View>
-
-        <View style={styles.eventCard}>
-          <View>
-            <Text style={styles.eventTitle}>EVENTO ATIVO</Text>
-
-            <View style={styles.eventRow}>
-              <MaterialCommunityIcons name="weather-windy" size={22} color="#F97316" />
-              <Text style={styles.eventName}>Tempestade de Poeira</Text>
-            </View>
-
-            <Text style={styles.eventDescription}>
-              Impacto: -15% na geração de energia
-            </Text>
-
-            <View style={styles.eventRow}>
-              <MaterialCommunityIcons name="timer-sand" size={21} color="#EF4444" />
-              <Text style={styles.eventTime}>
-                Tempo restante: <Text style={styles.eventTimeStrong}>02h 14m</Text>
-              </Text>
-            </View>
-          </View>
-
-          <Ionicons name="rainy" size={48} color="rgba(148,163,184,0.28)" />
-        </View>
+        <Pressable
+          style={styles.createButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Ionicons name="add" size={24} color="#CBD5E1" />
+          <Text style={styles.createButtonText}>Criar nova colônia</Text>
+        </Pressable>
       </ScrollView>
 
       <BottomNav />
+
+      <Modal transparent visible={modalVisible} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Criar nova colônia</Text>
+
+            <Text style={styles.modalSubtitle}>
+              Defina o nome da base e escolha onde sua missão vai começar.
+            </Text>
+
+            <TextInput
+              value={colonyName}
+              onChangeText={setColonyName}
+              placeholder="Nome da colônia"
+              placeholderTextColor="#94A3B8"
+              style={styles.input}
+            />
+
+            <View style={styles.planetOptions}>
+              <PlanetOption
+                label="Marte"
+                active={selectedPlanet === "Marte"}
+                onPress={() => setSelectedPlanet("Marte")}
+              />
+
+              <PlanetOption
+                label="Lua"
+                active={selectedPlanet === "Lua"}
+                onPress={() => setSelectedPlanet("Lua")}
+              />
+            </View>
+
+            <Pressable
+              style={styles.modalCreateButton}
+              onPress={handleCreateColony}
+            >
+              <Text style={styles.modalCreateText}>Criar colônia</Text>
+            </Pressable>
+
+            <Pressable onPress={() => setModalVisible(false)}>
+              <Text style={styles.cancelText}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-type ResourceCardProps = {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  label: string;
-  value: string;
-  variation?: string;
-  subtitle?: string;
-  color: string;
-  progress: number;
+type PlanetOptionProps = {
+  label: Planet;
+  active: boolean;
+  onPress: () => void;
 };
 
-function ResourceCard({
-  icon,
-  label,
-  value,
-  variation,
-  subtitle,
-  color,
-  progress,
-}: ResourceCardProps) {
+function PlanetOption({ label, active, onPress }: PlanetOptionProps) {
   return (
-    <View style={styles.resourceCard}>
-      <View style={styles.resourceHeader}>
-        <MaterialCommunityIcons name={icon} size={24} color={color} />
-        <Text style={[styles.resourceLabel, { color }]}>{label}</Text>
-      </View>
-
-      <View style={styles.resourceValueRow}>
-        <Text style={[styles.resourceValue, { color }]}>{value}</Text>
-
-        {!!variation && (
-          <Text
-            style={[
-              styles.resourceVariation,
-              { color: variation.includes("-") ? "#F87171" : "#5EEAD4" },
-            ]}
-          >
-            {variation}
-          </Text>
-        )}
-      </View>
-
-      {!!subtitle && <Text style={styles.resourceSubtitle}>{subtitle}</Text>}
-
-      {progress > 0 && (
-        <View style={styles.resourceTrack}>
-          <View
-            style={[
-              styles.resourceFill,
-              {
-                width: `${progress}%`,
-                backgroundColor: color,
-              },
-            ]}
-          />
-        </View>
-      )}
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={[styles.planetOption, active && styles.planetOptionActive]}
+    >
+      <Text
+        style={[
+          styles.planetOptionText,
+          active && styles.planetOptionTextActive,
+        ]}
+      >
+        {label.toUpperCase()}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -285,10 +331,26 @@ function BottomNav() {
   return (
     <View style={styles.bottomNav}>
       <NavItem icon="home" label="Home" active onPress={() => router.push("/home")} />
-      <NavItem icon="create-outline" label="Missões" onPress={() => router.push("/missions")} />
-      <NavItem icon="notifications-outline" label="Alertas" onPress={() => router.push("/alerts")} />
-      <NavItem icon="trophy-outline" label="Ranking" onPress={() => router.push("/ranking")} />
-      <NavItem icon="person-outline" label="Perfil" onPress={() => router.push("/profile")} />
+      <NavItem
+        icon="create-outline"
+        label="Missões"
+        onPress={() => router.push("/missions")}
+      />
+      <NavItem
+        icon="notifications-outline"
+        label="Alertas"
+        onPress={() => router.push("/alerts")}
+      />
+      <NavItem
+        icon="trophy-outline"
+        label="Ranking"
+        onPress={() => router.push("/ranking")}
+      />
+      <NavItem
+        icon="person-outline"
+        label="Perfil"
+        onPress={() => router.push("/profile")}
+      />
     </View>
   );
 }
@@ -304,7 +366,9 @@ function NavItem({ icon, label, active, onPress }: NavItemProps) {
   return (
     <Pressable onPress={onPress} style={styles.navItem}>
       <Ionicons name={icon} size={25} color={active ? "#60A5FA" : "#94A3B8"} />
-      <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
+      <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -315,348 +379,174 @@ const styles = StyleSheet.create({
     backgroundColor: "#020617",
     overflow: "hidden",
   },
-
   starsLayer: {
     ...StyleSheet.absoluteFillObject,
   },
-
   star: {
     position: "absolute",
     borderRadius: 999,
     backgroundColor: "#E0F2FE",
   },
-
-  milkyWay: {
+  galaxyGlow: {
     position: "absolute",
-    top: -80,
-    left: "34%",
-    width: 130,
+    top: -90,
+    left: "35%",
+    width: 165,
     height: "120%",
     borderRadius: 100,
-    transform: [{ rotate: "18deg" }],
-    opacity: 0.8,
+    transform: [{ rotate: "20deg" }],
+    opacity: 0.7,
   },
-
   content: {
     paddingHorizontal: 22,
-    paddingTop: 52,
-    paddingBottom: 120,
+    paddingTop: 62,
+    paddingBottom: 126,
     zIndex: 10,
   },
-
   header: {
+    height: 54,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 26,
+    marginBottom: 22,
   },
-
-  greeting: {
+  title: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "900",
+    letterSpacing: 0.4,
   },
-
-  bellButton: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  badge: {
-    position: "absolute",
-    top: 3,
-    right: 4,
-    width: 18,
-    height: 18,
+  plusButton: {
+    width: 48,
+    height: 48,
     borderRadius: 999,
-    backgroundColor: "#EF4444",
+    backgroundColor: "rgba(37,99,235,0.76)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.52)",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "900",
-  },
-
-  mainColonyCard: {
-    height: 185,
-    borderRadius: 18,
+  colonyCard: {
+    width: "100%",
+    height: 205,
+    borderRadius: 24,
     overflow: "hidden",
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: "rgba(248,113,113,0.48)",
-    backgroundColor: "rgba(15,23,42,0.82)",
+    backgroundColor: "#020617",
+    position: "relative",
+  },
+  marsCard: {
+    borderColor: "rgba(248,113,113,0.58)",
+  },
+  moonCard: {
+    borderColor: "rgba(56,189,248,0.44)",
+  },
+  cardPhoto: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+    borderRadius: 24,
+  },
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
     padding: 18,
-    marginBottom: 26,
+    justifyContent: "space-between",
+    borderRadius: 24,
   },
-
-  planetGlow: {
-    position: "absolute",
-    right: 48,
-    top: 42,
-    width: 150,
-    height: 150,
-    borderRadius: 999,
-    backgroundColor: "rgba(249,115,22,0.18)",
-  },
-
-  dome: {
-    position: "absolute",
-    right: 92,
-    bottom: 56,
-    width: 110,
-    height: 56,
-    borderTopLeftRadius: 110,
-    borderTopRightRadius: 110,
-    borderWidth: 2,
-    borderColor: "rgba(226,232,240,0.48)",
-    backgroundColor: "rgba(148,163,184,0.16)",
-  },
-
-  domeBase: {
-    position: "absolute",
-    right: 78,
-    bottom: 45,
-    width: 140,
-    height: 16,
-    borderRadius: 6,
-    backgroundColor: "rgba(15,23,42,0.78)",
-    borderWidth: 1,
-    borderColor: "rgba(226,232,240,0.22)",
-  },
-
-  antenna: {
-    position: "absolute",
-    right: 95,
-    bottom: 62,
-    width: 3,
-    height: 56,
-    backgroundColor: "rgba(226,232,240,0.45)",
-  },
-
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    zIndex: 4,
   },
-
-  colonyTitle: {
+  colonyName: {
     color: "#FFFFFF",
-    fontSize: 23,
+    fontSize: 21,
     fontWeight: "900",
-    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    textShadowColor: "rgba(0,0,0,0.95)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 5,
+    maxWidth: 220,
   },
-
   planetText: {
-    color: "#E5E7EB",
-    marginTop: 8,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-
-  statusStable: {
-    backgroundColor: "rgba(22,101,52,0.82)",
-    paddingHorizontal: 13,
-    height: 35,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  statusStableText: {
-    color: "#86EFAC",
-    fontSize: 13,
-    fontWeight: "900",
-  },
-
-  colonyInfoRow: {
-    marginTop: "auto",
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    zIndex: 4,
-  },
-
-  dayText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "900",
-  },
-
-  expText: {
     color: "#E5E7EB",
     fontSize: 14,
     fontWeight: "800",
-    marginTop: 6,
+    textTransform: "uppercase",
+    marginTop: 5,
+    textShadowColor: "rgba(0,0,0,0.95)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 5,
   },
-
-  expTrack: {
-    width: 230,
-    height: 7,
-    borderRadius: 999,
-    marginTop: 10,
-    backgroundColor: "rgba(15,23,42,0.86)",
-    overflow: "hidden",
-  },
-
-  expFill: {
-    width: "82%",
-    height: "100%",
-    borderRadius: 999,
-  },
-
-  levelCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: "rgba(148,163,184,0.7)",
+  statusBadge: {
+    height: 34,
+    paddingHorizontal: 13,
+    borderRadius: 9,
+    backgroundColor: "rgba(22,101,52,0.90)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(15,23,42,0.82)",
   },
-
-  levelLabel: {
-    color: "#CBD5E1",
-    fontSize: 10,
+  statusAlert: {
+    backgroundColor: "rgba(127,29,29,0.90)",
+  },
+  statusText: {
+    color: "#86EFAC",
+    fontSize: 12,
     fontWeight: "900",
   },
-
-  levelNumber: {
-    color: "#FFFFFF",
-    fontSize: 24,
+  statusAlertText: {
+    color: "#FF755F",
+  },
+  infoBar: {
+    minHeight: 46,
+    borderRadius: 15,
+    backgroundColor: "rgba(2,6,23,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(148,163,184,0.16)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 13,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  dot: {
+    color: "#F97316",
+    fontSize: 21,
     fontWeight: "900",
     marginTop: -2,
   },
-
-  sectionTitle: {
+  infoText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "900",
-    marginBottom: 14,
-    letterSpacing: 0.4,
-  },
-
-  resourcesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-
-  resourceCard: {
-    width: "30.8%",
-    minHeight: 106,
-    borderRadius: 13,
-    padding: 11,
-    backgroundColor: "rgba(15,23,42,0.82)",
-    borderWidth: 1,
-    borderColor: "rgba(56,189,248,0.18)",
-  },
-
-  resourceHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-
-  resourceLabel: {
-    fontSize: 10,
-    fontWeight: "900",
-  },
-
-  resourceValueRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginTop: 12,
-    gap: 4,
-  },
-
-  resourceValue: {
-    fontSize: 25,
-    fontWeight: "900",
-  },
-
-  resourceVariation: {
-    fontSize: 10,
-    fontWeight: "900",
-    marginBottom: 4,
-  },
-
-  resourceSubtitle: {
-    color: "#CBD5E1",
     fontSize: 12,
-    fontWeight: "700",
-    marginTop: 5,
+    fontWeight: "900",
   },
-
-  resourceTrack: {
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(51,65,85,0.8)",
-    marginTop: 12,
-    overflow: "hidden",
+  divider: {
+    width: 1,
+    height: 25,
+    backgroundColor: "rgba(148,163,184,0.24)",
   },
-
-  resourceFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
-
-  eventCard: {
-    marginTop: 26,
-    borderRadius: 18,
-    backgroundColor: "rgba(15,23,42,0.82)",
+  createButton: {
+    height: 70,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(56,189,248,0.18)",
-    padding: 18,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    borderStyle: "dashed",
+    borderColor: "rgba(96,165,250,0.38)",
+    backgroundColor: "rgba(2,6,23,0.68)",
     alignItems: "center",
-  },
-
-  eventTitle: {
-    color: "#F87171",
-    fontSize: 14,
-    fontWeight: "900",
-    marginBottom: 18,
-  },
-
-  eventRow: {
+    justifyContent: "center",
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
+    gap: 8,
+    marginTop: 2,
   },
-
-  eventName: {
-    color: "#FFFFFF",
+  createButtonText: {
+    color: "#93C5FD",
     fontSize: 16,
-    fontWeight: "900",
-  },
-
-  eventDescription: {
-    color: "#94A3B8",
-    fontSize: 13,
-    fontWeight: "700",
-    marginLeft: 32,
-    marginBottom: 10,
-  },
-
-  eventTime: {
-    color: "#E5E7EB",
-    fontSize: 14,
     fontWeight: "800",
   },
-
-  eventTimeStrong: {
-    color: "#F97316",
-    fontWeight: "900",
-  },
-
   bottomNav: {
     position: "absolute",
     left: 0,
@@ -672,20 +562,109 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     zIndex: 20,
   },
-
   navItem: {
     alignItems: "center",
     gap: 4,
     width: 62,
   },
-
   navLabel: {
     color: "#94A3B8",
     fontSize: 11,
     fontWeight: "700",
   },
-
   navLabelActive: {
     color: "#60A5FA",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 22,
+  },
+  modalCard: {
+    width: "100%",
+    borderRadius: 26,
+    padding: 22,
+    backgroundColor: "#020617",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.28)",
+  },
+  modalTitle: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    color: "#94A3B8",
+    fontSize: 15,
+    fontWeight: "500",
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  input: {
+    height: 58,
+    borderRadius: 17,
+    backgroundColor: "rgba(15,23,42,0.96)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.95)",
+    color: "#FFFFFF",
+    paddingHorizontal: 17,
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 15,
+  },
+  planetOptions: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 18,
+  },
+  planetOption: {
+    flex: 1,
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: "rgba(15,23,42,0.95)",
+    borderWidth: 1,
+    borderColor: "rgba(148,163,184,0.20)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planetOptionActive: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#60A5FA",
+    shadowColor: "#60A5FA",
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  planetOptionText: {
+    color: "#CBD5E1",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  planetOptionTextActive: {
+    color: "#020617",
+  },
+  modalCreateButton: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#60A5FA",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  modalCreateText: {
+    color: "#020617",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  cancelText: {
+    color: "#94A3B8",
+    fontSize: 15,
+    fontWeight: "800",
+    textAlign: "center",
   },
 });
