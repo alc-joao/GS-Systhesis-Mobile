@@ -12,12 +12,14 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
 type MissionDifficulty = "Fácil" | "Média" | "Difícil";
+type Planet = "Marte" | "Lua";
 
 type Mission = {
   id: string;
   title: string;
   difficulty: MissionDifficulty;
   progress: number;
+  planet: Planet;
   locked?: boolean;
 };
 
@@ -34,24 +36,28 @@ const activeMissions: Mission[] = [
     title: "Primeira Colheita em Marte",
     difficulty: "Média",
     progress: 60,
+    planet: "Marte",
   },
   {
     id: "2",
     title: "Estabilidade Energética",
     difficulty: "Fácil",
     progress: 30,
+    planet: "Marte",
   },
   {
     id: "3",
     title: "Reciclagem de Água",
     difficulty: "Fácil",
     progress: 0,
+    planet: "Lua",
   },
   {
     id: "4",
     title: "Exploração do Subsolo",
     difficulty: "Difícil",
     progress: 0,
+    planet: "Lua",
     locked: true,
   },
   {
@@ -59,6 +65,7 @@ const activeMissions: Mission[] = [
     title: "Produção de Oxigênio",
     difficulty: "Média",
     progress: 0,
+    planet: "Marte",
     locked: true,
   },
 ];
@@ -69,12 +76,14 @@ const completedMissions: Mission[] = [
     title: "Primeiro Módulo Habitável",
     difficulty: "Fácil",
     progress: 100,
+    planet: "Marte",
   },
   {
     id: "7",
     title: "Comunicação com a Terra",
     difficulty: "Média",
     progress: 100,
+    planet: "Lua",
   },
 ];
 
@@ -106,7 +115,8 @@ export default function MissionsScreen() {
         id: mission.id,
         title: mission.title,
         difficulty: mission.difficulty,
-        progress: mission.progress,
+        progress: String(mission.progress),
+        planet: mission.planet,
       },
     });
   }
@@ -224,7 +234,7 @@ function MissionCard({ mission, onPress }: MissionCardProps) {
     mission.difficulty === "Fácil"
       ? "#2DD4BF"
       : mission.difficulty === "Média"
-      ? "#38BDF8"
+      ? "#F59E0B"
       : "#FB7185";
 
   return (
@@ -242,6 +252,8 @@ function MissionCard({ mission, onPress }: MissionCardProps) {
               {mission.difficulty}
             </Text>
           </Text>
+
+          <Text style={styles.planetText}>{mission.planet}</Text>
         </View>
 
         {mission.locked && (
@@ -273,8 +285,17 @@ function MissionCard({ mission, onPress }: MissionCardProps) {
 function BottomNav() {
   return (
     <View style={styles.bottomNav}>
-      <NavItem icon="home-outline" label="Home" onPress={() => router.push("/home")} />
-      <NavItem icon="create" label="Missões" active onPress={() => router.push("/missions")} />
+      <NavItem
+        icon="home-outline"
+        label="Home"
+        onPress={() => router.push("/home")}
+      />
+      <NavItem
+        icon="create"
+        label="Missões"
+        active
+        onPress={() => router.push("/missions")}
+      />
       <NavItem
         icon="notifications-outline"
         label="Alertas"
@@ -356,9 +377,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "900",
     letterSpacing: 0.8,
-    textShadowColor: "rgba(255,255,255,0.35)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
   headerSpace: {
     width: 42,
@@ -401,7 +419,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   missionCard: {
-    minHeight: 118,
+    minHeight: 122,
     borderRadius: 18,
     padding: 18,
     marginBottom: 20,
@@ -426,9 +444,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "900",
     marginBottom: 10,
-    textShadowColor: "rgba(255,255,255,0.22)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
   },
   difficultyText: {
     color: "#94A3B8",
@@ -437,6 +452,14 @@ const styles = StyleSheet.create({
   },
   difficultyValue: {
     fontWeight: "900",
+  },
+  planetText: {
+    color: "#60A5FA",
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: 6,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   progressRow: {
     flexDirection: "row",
