@@ -51,12 +51,17 @@ export default function ColonyDashboardScreen() {
     []
   );
 
+  const colonyImage =
+    colonyPlanet === "Marte"
+      ? require("../assets/images/imgs/colheita-marte.png")
+      : require("../assets/images/imgs/colheita-lua.png");
+
   return (
     <View style={styles.container}>
       <StatusBar hidden />
 
       <LinearGradient
-        colors={["#020617", "#030712", "#08111f", "#020617"]}
+        colors={["#020617", "#030712", "#08111F", "#020617"]}
         locations={[0, 0.35, 0.72, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -95,42 +100,23 @@ export default function ColonyDashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-  <Pressable
-    onPress={() => router.push("/home")}
-    style={styles.backButton}
-  >
-    <Ionicons
-      name="arrow-back"
-      size={24}
-      color="#FFFFFF"
-    />
-  </Pressable>
+          <Pressable onPress={() => router.push("/home")} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </Pressable>
 
-  <View style={{ flex: 1, marginLeft: 12 }}>
-    <Text style={styles.greeting}>
-      Olá, Comandante! 👋
-    </Text>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>Olá, Comandante! 👋</Text>
+            <Text style={styles.subtitle}>{colonyName}</Text>
+          </View>
 
-    <Text style={styles.subtitle}>
-      {colonyName}
-    </Text>
-  </View>
+          <Pressable onPress={() => router.push("/alerts")} style={styles.bellButton}>
+            <Ionicons name="notifications-outline" size={25} color="#FFFFFF" />
 
-  <Pressable
-    onPress={() => router.push("/alerts")}
-    style={styles.bellButton}
-  >
-    <Ionicons
-      name="notifications-outline"
-      size={25}
-      color="#FFFFFF"
-    />
-
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>1</Text>
-    </View>
-  </Pressable>
-</View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>1</Text>
+            </View>
+          </Pressable>
+        </View>
 
         <View
           style={[
@@ -138,23 +124,15 @@ export default function ColonyDashboardScreen() {
             colonyPlanet === "Marte" ? styles.marsBorder : styles.moonBorder,
           ]}
         >
-          <Image
-            source={
-              colonyPlanet === "Marte"
-                ? require("../assets/images/imgs/base-marte.png")
-                : require("../assets/images/imgs/base-lua.png")
-            }
-            style={styles.colonyImage}
-            resizeMode="cover"
-          />
+          <Image source={colonyImage} style={styles.colonyImage} resizeMode="cover" />
 
           <LinearGradient
             colors={[
-              "rgba(0,0,0,0.28)",
-              "rgba(0,0,0,0.12)",
-              "rgba(0,0,0,0.82)",
+              "rgba(0,0,0,0.2)",
+              "rgba(0,0,0,0.1)",
+              "rgba(0,0,0,0.86)",
             ]}
-            locations={[0, 0.48, 1]}
+            locations={[0, 0.45, 1]}
             style={styles.cardOverlay}
           >
             <View style={styles.cardTop}>
@@ -214,7 +192,7 @@ export default function ColonyDashboardScreen() {
           <ResourceCard icon="water" label="ÁGUA" value="72%" variation="+2%" color="#38BDF8" progress={72} />
           <ResourceCard icon="lightning-bolt" label="ENERGIA" value="68%" variation="-5%" color="#FACC15" progress={68} />
           <ResourceCard icon="cloud" label="OXIGÊNIO" value="81%" variation="+1%" color="#2DD4BF" progress={81} />
-          <ResourceCard icon="food-apple" label="ALIMENTO" value="45%" color="#EF4444" progress={45} />
+          <ResourceCard icon="food-apple" label="ALIMENTO" value="45%" variation="-8%" color="#EF4444" progress={45} />
           <ResourceCard icon="thermometer" label="TEMP." value="22°C" subtitle="Estável" color="#C084FC" progress={0} />
           <ResourceCard icon="account-group" label="TRIPULAÇÃO" value="12" subtitle="Saudável" color="#7DD3FC" progress={0} />
         </View>
@@ -242,40 +220,24 @@ export default function ColonyDashboardScreen() {
             </View>
           </View>
 
-          <Ionicons name="rainy" size={48} color="rgba(148,163,184,0.28)" />
+          <Ionicons name="warning-outline" size={48} color="rgba(148,163,184,0.28)" />
         </View>
 
         <Text style={styles.sectionTitle}>MISSÕES ATIVAS</Text>
 
-        <View style={styles.missionCard}>
-          <View style={styles.missionIcon}>
-            <Ionicons name="rocket-outline" size={24} color="#60A5FA" />
-          </View>
+        <MissionCard
+          icon="rocket-outline"
+          color="#60A5FA"
+          title="Expandir produção de alimento"
+          description="Construa uma nova estufa para aumentar a segurança alimentar."
+        />
 
-          <View style={styles.missionContent}>
-            <Text style={styles.missionTitle}>Expandir produção de alimento</Text>
-            <Text style={styles.missionDescription}>
-              Construa uma nova estufa para aumentar a segurança alimentar.
-            </Text>
-          </View>
-
-          <Ionicons name="chevron-forward" size={22} color="#94A3B8" />
-        </View>
-
-        <View style={styles.missionCard}>
-          <View style={styles.missionIcon}>
-            <Ionicons name="shield-checkmark-outline" size={24} color="#22C55E" />
-          </View>
-
-          <View style={styles.missionContent}>
-            <Text style={styles.missionTitle}>Reforçar escudos da base</Text>
-            <Text style={styles.missionDescription}>
-              Proteja a colônia contra eventos extremos do ambiente.
-            </Text>
-          </View>
-
-          <Ionicons name="chevron-forward" size={22} color="#94A3B8" />
-        </View>
+        <MissionCard
+          icon="shield-checkmark-outline"
+          color="#22C55E"
+          title="Reforçar escudos da base"
+          description="Proteja a colônia contra eventos extremos do ambiente."
+        />
       </ScrollView>
 
       <BottomNav />
@@ -343,10 +305,40 @@ function ResourceCard({
   );
 }
 
+type MissionCardProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  title: string;
+  description: string;
+};
+
+function MissionCard({ icon, color, title, description }: MissionCardProps) {
+  return (
+    <Pressable
+      onPress={() => router.push("/mission-detail")}
+      style={({ pressed }) => [
+        styles.missionCard,
+        pressed && { transform: [{ scale: 0.98 }], opacity: 0.85 },
+      ]}
+    >
+      <View style={styles.missionIcon}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+
+      <View style={styles.missionContent}>
+        <Text style={styles.missionTitle}>{title}</Text>
+        <Text style={styles.missionDescription}>{description}</Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={22} color="#94A3B8" />
+    </Pressable>
+  );
+}
+
 function BottomNav() {
   return (
     <View style={styles.bottomNav}>
-      <NavItem icon="home" label="Home" active onPress={() => router.push("/home")} />
+      <NavItem icon="home-outline" label="Home" onPress={() => router.push("/home")} />
       <NavItem icon="create-outline" label="Missões" onPress={() => router.push("/missions")} />
       <NavItem icon="notifications-outline" label="Alertas" onPress={() => router.push("/alerts")} />
       <NavItem icon="trophy-outline" label="Ranking" onPress={() => router.push("/ranking")} />
@@ -403,9 +395,22 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 22,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(15,23,42,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(148,163,184,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerText: {
+    flex: 1,
+    marginLeft: 12,
   },
   greeting: {
     color: "#FFFFFF",
@@ -422,6 +427,10 @@ const styles = StyleSheet.create({
   bellButton: {
     width: 44,
     height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(15,23,42,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(148,163,184,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -448,7 +457,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: "rgba(15,23,42,0.82)",
     marginBottom: 26,
-    position: "relative",
   },
   marsBorder: {
     borderColor: "rgba(248,113,113,0.48)",
@@ -501,7 +509,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   statusAlert: {
-    backgroundColor: "rgba(127,29,29,0.90)",
+    backgroundColor: "rgba(127,29,29,0.9)",
   },
   statusText: {
     color: "#86EFAC",
@@ -572,11 +580,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
+    rowGap: 12,
     marginBottom: 26,
   },
   resourceCard: {
-    width: "30.8%",
+    width: "31%",
     minHeight: 106,
     borderRadius: 13,
     padding: 11,
@@ -600,7 +608,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   resourceValue: {
-    fontSize: 25,
+    fontSize: 24,
     fontWeight: "900",
   },
   resourceVariation: {
