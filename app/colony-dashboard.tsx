@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -8,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -15,12 +17,19 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 type Planet = "Marte" | "Lua";
 type ColonyStatus = "Estável" | "Alerta";
 
+type Colony = {
+  id: string;
+  name: string;
+};
+
 type Star = {
   top: number;
   left: number;
   size: number;
   opacity: number;
 };
+
+const STORAGE_KEY = "@systhesis:colonies";
 
 export default function ColonyDashboardScreen() {
   const params = useLocalSearchParams<{
@@ -33,12 +42,13 @@ export default function ColonyDashboardScreen() {
     xp?: string;
   }>();
 
+  const colonyId = params.id || "";
   const colonyName = params.name || "Base Ares-01";
   const colonyPlanet = params.planet || "Marte";
   const colonyStatus = params.status || "Estável";
-  const colonyDay = Number(params.day) || 23;
-  const colonyLevel = Number(params.level) || 12;
-  const colonyXp = Number(params.xp) || 2450;
+  const colonyDay = Number(params.day) || 1;
+  const colonyLevel = Number(params.level) || 1;
+  const colonyXp = Number(params.xp) || 0;
 
   const stars = useMemo<Star[]>(
     () =>
@@ -55,6 +65,23 @@ export default function ColonyDashboardScreen() {
     colonyPlanet === "Marte"
       ? require("../assets/images/imgs/colheita-marte.png")
       : require("../assets/images/imgs/colheita-lua.png");
+
+  async function handleDeleteColony() {
+    try {
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      const colonies: Colony[] = saved ? JSON.parse(saved) : [];
+
+      const updatedColonies = colonies.filter(
+        (colony) => colony.id !== colonyId && colony.name !== colonyName
+      );
+
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedColonies));
+
+      router.replace("/home");
+    } catch {
+      Alert.alert("Erro", "Não foi possível excluir a colônia.");
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -238,6 +265,23 @@ export default function ColonyDashboardScreen() {
           title="Reforçar escudos da base"
           description="Proteja a colônia contra eventos extremos do ambiente."
         />
+
+        <View style={styles.dangerCard}>
+          <View style={styles.dangerIcon}>
+            <Ionicons name="trash-outline" size={24} color="#F87171" />
+          </View>
+
+          <View style={styles.dangerContent}>
+            <Text style={styles.dangerTitle}>Excluir colônia</Text>
+            <Text style={styles.dangerDescription}>
+              Remove esta colônia da sua lista inicial.
+            </Text>
+          </View>
+
+          <Pressable style={styles.dangerButton} onPress={handleDeleteColony}>
+            <Text style={styles.dangerButtonText}>Apagar</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <BottomNav />
@@ -350,33 +394,22 @@ function BottomNav() {
 type NavItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  active?: boolean;
   onPress: () => void;
 };
 
-function NavItem({ icon, label, active, onPress }: NavItemProps) {
+function NavItem({ icon, label, onPress }: NavItemProps) {
   return (
     <Pressable onPress={onPress} style={styles.navItem}>
-      <Ionicons name={icon} size={25} color={active ? "#60A5FA" : "#94A3B8"} />
-      <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
+      <Ionicons name={icon} size={25} color="#94A3B8" />
+      <Text style={styles.navLabel}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#020617",
-    overflow: "hidden",
-  },
-  starsLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  star: {
-    position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "#FFFFFF",
-  },
+  container: { flex: 1, backgroundColor: "#020617", overflow: "hidden" },
+  starsLayer: { ...StyleSheet.absoluteFillObject },
+  star: { position: "absolute", borderRadius: 999, backgroundColor: "#FFFFFF" },
   galaxyGlow: {
     position: "absolute",
     top: -90,
@@ -458,12 +491,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15,23,42,0.82)",
     marginBottom: 26,
   },
-  marsBorder: {
-    borderColor: "rgba(248,113,113,0.48)",
-  },
-  moonBorder: {
-    borderColor: "rgba(56,189,248,0.36)",
-  },
+  marsBorder: { borderColor: "rgba(248,113,113,0.48)" },
+  moonBorder: { borderColor: "rgba(56,189,248,0.36)" },
   colonyImage: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
@@ -508,28 +537,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  statusAlert: {
-    backgroundColor: "rgba(127,29,29,0.9)",
-  },
+  statusAlert: { backgroundColor: "rgba(127,29,29,0.9)" },
   statusText: {
     color: "#86EFAC",
     fontSize: 13,
     fontWeight: "900",
   },
-  statusAlertText: {
-    color: "#FF755F",
-  },
+  statusAlertText: { color: "#FF755F" },
   colonyInfoRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     zIndex: 4,
   },
-  dayText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "900",
-  },
+  dayText: { color: "#FFFFFF", fontSize: 17, fontWeight: "900" },
   expText: {
     color: "#E5E7EB",
     fontSize: 14,
@@ -544,10 +565,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15,23,42,0.86)",
     overflow: "hidden",
   },
-  expFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
+  expFill: { height: "100%", borderRadius: 999 },
   levelCircle: {
     width: 68,
     height: 68,
@@ -597,20 +615,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  resourceLabel: {
-    fontSize: 10,
-    fontWeight: "900",
-  },
+  resourceLabel: { fontSize: 10, fontWeight: "900" },
   resourceValueRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     marginTop: 12,
     gap: 4,
   },
-  resourceValue: {
-    fontSize: 24,
-    fontWeight: "900",
-  },
+  resourceValue: { fontSize: 24, fontWeight: "900" },
   resourceVariation: {
     fontSize: 10,
     fontWeight: "900",
@@ -629,10 +641,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     overflow: "hidden",
   },
-  resourceFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
+  resourceFill: { height: "100%", borderRadius: 999 },
   eventCard: {
     marginBottom: 26,
     borderRadius: 18,
@@ -644,9 +653,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  eventContent: {
-    flex: 1,
-  },
+  eventContent: { flex: 1 },
   eventTitle: {
     color: "#F87171",
     fontSize: 14,
@@ -659,11 +666,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
-  eventName: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "900",
-  },
+  eventName: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
   eventDescription: {
     color: "#94A3B8",
     fontSize: 13,
@@ -671,15 +674,8 @@ const styles = StyleSheet.create({
     marginLeft: 32,
     marginBottom: 10,
   },
-  eventTime: {
-    color: "#E5E7EB",
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  eventTimeStrong: {
-    color: "#F97316",
-    fontWeight: "900",
-  },
+  eventTime: { color: "#E5E7EB", fontSize: 14, fontWeight: "800" },
+  eventTimeStrong: { color: "#F97316", fontWeight: "900" },
   missionCard: {
     borderRadius: 18,
     backgroundColor: "rgba(15,23,42,0.82)",
@@ -699,9 +695,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  missionContent: {
-    flex: 1,
-  },
+  missionContent: { flex: 1 },
   missionTitle: {
     color: "#FFFFFF",
     fontSize: 15,
@@ -713,6 +707,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 17,
+  },
+  dangerCard: {
+    borderRadius: 18,
+    backgroundColor: "rgba(127,29,29,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(248,113,113,0.28)",
+    padding: 16,
+    marginTop: 14,
+    marginBottom: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dangerIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "rgba(127,29,29,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dangerContent: { flex: 1 },
+  dangerTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "900",
+    marginBottom: 5,
+  },
+  dangerDescription: {
+    color: "#FCA5A5",
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17,
+  },
+  dangerButton: {
+    height: 38,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(220,38,38,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dangerButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "900",
   },
   bottomNav: {
     position: "absolute",
@@ -738,8 +778,5 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontSize: 11,
     fontWeight: "700",
-  },
-  navLabelActive: {
-    color: "#60A5FA",
   },
 });

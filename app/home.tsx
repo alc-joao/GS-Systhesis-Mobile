@@ -1,15 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -34,7 +33,32 @@ type Star = {
   opacity: number;
 };
 
+const STORAGE_KEY = "@systhesis:colonies";
+
+const DEFAULT_COLONIES: Colony[] = [
+  {
+    id: "1",
+    name: "Base Ares-01",
+    planet: "Marte",
+    status: "Estável",
+    day: 23,
+    level: 12,
+    xp: 2450,
+  },
+  {
+    id: "2",
+    name: "Base Artemis",
+    planet: "Lua",
+    status: "Alerta",
+    day: 17,
+    level: 8,
+    xp: 1180,
+  },
+];
+
 export default function HomeScreen() {
+  const [colonies, setColonies] = useState<Colony[]>([]);
+
   const stars = useMemo<Star[]>(
     () =>
       Array.from({ length: 260 }).map(() => ({
@@ -46,30 +70,31 @@ export default function HomeScreen() {
     []
   );
 
-  const [colonies, setColonies] = useState<Colony[]>([
-    {
-      id: "1",
-      name: "Base Ares-01",
-      planet: "Marte",
-      status: "Estável",
-      day: 23,
-      level: 12,
-      xp: 2450,
-    },
-    {
-      id: "2",
-      name: "Base Artemis",
-      planet: "Lua",
-      status: "Alerta",
-      day: 17,
-      level: 8,
-      xp: 1180,
-    },
-  ]);
+  async function loadColonies() {
+    try {
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [colonyName, setColonyName] = useState("");
-  const [selectedPlanet, setSelectedPlanet] = useState<Planet>("Marte");
+      if (saved !== null) {
+        setColonies(JSON.parse(saved));
+        return;
+      }
+
+      setColonies(DEFAULT_COLONIES);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_COLONIES));
+    } catch {
+      setColonies(DEFAULT_COLONIES);
+    }
+  }
+
+  useEffect(() => {
+    loadColonies();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadColonies();
+    }, [])
+  );
 
   function handleOpenColony(colony: Colony) {
     router.push({
@@ -79,30 +104,11 @@ export default function HomeScreen() {
         name: colony.name,
         planet: colony.planet,
         status: colony.status,
-        day: colony.day,
-        level: colony.level,
-        xp: colony.xp,
+        day: String(colony.day),
+        level: String(colony.level),
+        xp: String(colony.xp),
       },
     });
-  }
-
-  function handleCreateColony() {
-    if (!colonyName.trim()) return;
-
-    const newColony: Colony = {
-      id: String(Date.now()),
-      name: colonyName.trim(),
-      planet: selectedPlanet,
-      status: "Estável",
-      day: 1,
-      level: 1,
-      xp: 0,
-    };
-
-    setColonies((current) => [newColony, ...current]);
-    setColonyName("");
-    setSelectedPlanet("Marte");
-    setModalVisible(false);
   }
 
   return (
@@ -153,7 +159,7 @@ export default function HomeScreen() {
 
           <Pressable
             style={styles.plusButton}
-            onPress={() => setModalVisible(true)}
+            onPress={() => router.push("/colony-create")}
           >
             <Ionicons name="add" size={31} color="#FFFFFF" />
           </Pressable>
@@ -246,7 +252,7 @@ export default function HomeScreen() {
 
         <Pressable
           style={styles.createButton}
-          onPress={() => setModalVisible(true)}
+          onPress={() => router.push("/colony-create")}
         >
           <Ionicons name="add" size={24} color="#CBD5E1" />
           <Text style={styles.createButtonText}>Criar nova colônia</Text>
@@ -254,76 +260,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       <BottomNav />
-
-      <Modal transparent visible={modalVisible} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Criar nova colônia</Text>
-
-            <Text style={styles.modalSubtitle}>
-              Defina o nome da base e escolha onde sua missão vai começar.
-            </Text>
-
-            <TextInput
-              value={colonyName}
-              onChangeText={setColonyName}
-              placeholder="Nome da colônia"
-              placeholderTextColor="#94A3B8"
-              style={styles.input}
-            />
-
-            <View style={styles.planetOptions}>
-              <PlanetOption
-                label="Marte"
-                active={selectedPlanet === "Marte"}
-                onPress={() => setSelectedPlanet("Marte")}
-              />
-
-              <PlanetOption
-                label="Lua"
-                active={selectedPlanet === "Lua"}
-                onPress={() => setSelectedPlanet("Lua")}
-              />
-            </View>
-
-            <Pressable
-              style={styles.modalCreateButton}
-              onPress={handleCreateColony}
-            >
-              <Text style={styles.modalCreateText}>Criar colônia</Text>
-            </Pressable>
-
-            <Pressable onPress={() => setModalVisible(false)}>
-              <Text style={styles.cancelText}>Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </View>
-  );
-}
-
-type PlanetOptionProps = {
-  label: Planet;
-  active: boolean;
-  onPress: () => void;
-};
-
-function PlanetOption({ label, active, onPress }: PlanetOptionProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.planetOption, active && styles.planetOptionActive]}
-    >
-      <Text
-        style={[
-          styles.planetOptionText,
-          active && styles.planetOptionTextActive,
-        ]}
-      >
-        {label.toUpperCase()}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -331,26 +268,10 @@ function BottomNav() {
   return (
     <View style={styles.bottomNav}>
       <NavItem icon="home" label="Home" active onPress={() => router.push("/home")} />
-      <NavItem
-        icon="create-outline"
-        label="Missões"
-        onPress={() => router.push("/missions")}
-      />
-      <NavItem
-        icon="notifications-outline"
-        label="Alertas"
-        onPress={() => router.push("/alerts")}
-      />
-      <NavItem
-        icon="trophy-outline"
-        label="Ranking"
-        onPress={() => router.push("/ranking")}
-      />
-      <NavItem
-        icon="person-outline"
-        label="Perfil"
-        onPress={() => router.push("/profile")}
-      />
+      <NavItem icon="create-outline" label="Missões" onPress={() => router.push("/missions")} />
+      <NavItem icon="notifications-outline" label="Alertas" onPress={() => router.push("/alerts")} />
+      <NavItem icon="trophy-outline" label="Ranking" onPress={() => router.push("/ranking")} />
+      <NavItem icon="person-outline" label="Perfil" onPress={() => router.push("/profile")} />
     </View>
   );
 }
@@ -374,19 +295,9 @@ function NavItem({ icon, label, active, onPress }: NavItemProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#020617",
-    overflow: "hidden",
-  },
-  starsLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  star: {
-    position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "#E0F2FE",
-  },
+  container: { flex: 1, backgroundColor: "#020617", overflow: "hidden" },
+  starsLayer: { ...StyleSheet.absoluteFillObject },
+  star: { position: "absolute", borderRadius: 999, backgroundColor: "#E0F2FE" },
   galaxyGlow: {
     position: "absolute",
     top: -90,
@@ -436,12 +347,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#020617",
     position: "relative",
   },
-  marsCard: {
-    borderColor: "rgba(248,113,113,0.58)",
-  },
-  moonCard: {
-    borderColor: "rgba(56,189,248,0.44)",
-  },
+  marsCard: { borderColor: "rgba(248,113,113,0.58)" },
+  moonCard: { borderColor: "rgba(56,189,248,0.44)" },
   cardPhoto: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
@@ -454,10 +361,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderRadius: 24,
   },
-  cardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
+  cardTop: { flexDirection: "row", justifyContent: "space-between" },
   colonyName: {
     color: "#FFFFFF",
     fontSize: 21,
@@ -474,9 +378,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textTransform: "uppercase",
     marginTop: 5,
-    textShadowColor: "rgba(0,0,0,0.95)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 5,
   },
   statusBadge: {
     height: 34,
@@ -486,17 +387,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  statusAlert: {
-    backgroundColor: "rgba(127,29,29,0.90)",
-  },
-  statusText: {
-    color: "#86EFAC",
-    fontSize: 12,
-    fontWeight: "900",
-  },
-  statusAlertText: {
-    color: "#FF755F",
-  },
+  statusAlert: { backgroundColor: "rgba(127,29,29,0.90)" },
+  statusText: { color: "#86EFAC", fontSize: 12, fontWeight: "900" },
+  statusAlertText: { color: "#FF755F" },
   infoBar: {
     minHeight: 46,
     borderRadius: 15,
@@ -508,22 +401,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 13,
   },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
+  infoItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   dot: {
     color: "#F97316",
     fontSize: 21,
     fontWeight: "900",
     marginTop: -2,
   },
-  infoText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "900",
-  },
+  infoText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
   divider: {
     width: 1,
     height: 25,
@@ -562,109 +447,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     zIndex: 20,
   },
-  navItem: {
-    alignItems: "center",
-    gap: 4,
-    width: 62,
-  },
-  navLabel: {
-    color: "#94A3B8",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  navLabelActive: {
-    color: "#60A5FA",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 22,
-  },
-  modalCard: {
-    width: "100%",
-    borderRadius: 26,
-    padding: 22,
-    backgroundColor: "#020617",
-    borderWidth: 1,
-    borderColor: "rgba(96,165,250,0.28)",
-  },
-  modalTitle: {
-    color: "#FFFFFF",
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    color: "#94A3B8",
-    fontSize: 15,
-    fontWeight: "500",
-    lineHeight: 24,
-    marginBottom: 20,
-  },
-  input: {
-    height: 58,
-    borderRadius: 17,
-    backgroundColor: "rgba(15,23,42,0.96)",
-    borderWidth: 1,
-    borderColor: "rgba(96,165,250,0.95)",
-    color: "#FFFFFF",
-    paddingHorizontal: 17,
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 15,
-  },
-  planetOptions: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 18,
-  },
-  planetOption: {
-    flex: 1,
-    height: 58,
-    borderRadius: 18,
-    backgroundColor: "rgba(15,23,42,0.95)",
-    borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.20)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  planetOptionActive: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#60A5FA",
-    shadowColor: "#60A5FA",
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  planetOptionText: {
-    color: "#CBD5E1",
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-  },
-  planetOptionTextActive: {
-    color: "#020617",
-  },
-  modalCreateButton: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#60A5FA",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  modalCreateText: {
-    color: "#020617",
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  cancelText: {
-    color: "#94A3B8",
-    fontSize: 15,
-    fontWeight: "800",
-    textAlign: "center",
-  },
+  navItem: { alignItems: "center", gap: 4, width: 62 },
+  navLabel: { color: "#94A3B8", fontSize: 11, fontWeight: "700" },
+  navLabelActive: { color: "#60A5FA" },
 });
