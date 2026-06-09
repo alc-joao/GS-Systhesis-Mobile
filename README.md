@@ -14,7 +14,7 @@ Aplicativo mobile desenvolvido para a **Global Solution FIAP**, com foco na simu
 
 O **Systhesis** é uma aplicação mobile que propõe uma experiência interativa de gerenciamento de colônias espaciais. O usuário assume o papel de administrador de uma base extraterrestre, sendo responsável pelo monitoramento de recursos essenciais e pela tomada de decisões estratégicas para garantir a sobrevivência da colônia.
 
-O projeto foi desenvolvido com base no tema da **Global Solution FIAP**, abordando desafios relacionados à exploração espacial, sustentabilidade e produção de recursos em ambientes extremos.
+O projeto foi desenvolvido com base no tema da Global Solution FIAP, abordando desafios relacionados à exploração espacial, sustentabilidade e produção de recursos em ambientes extremos.
 
 ---
 
@@ -26,15 +26,16 @@ Criar uma plataforma capaz de simular a administração de colônias espaciais, 
 
 ## ✨ Funcionalidades
 
-* Autenticação de usuários (Login e Cadastro)
+* Autenticação de usuários
 * Criação de colônias espaciais
-* Dashboard com informações da colônia
+* Dashboard da colônia
 * Monitoramento de recursos
 * Sistema de missões
 * Sistema de desafios
 * Central de alertas
 * Ranking de desempenho
 * Perfil do usuário
+* Integração com API Java
 
 ---
 
@@ -47,20 +48,31 @@ Criar uma plataforma capaz de simular a administração de colônias espaciais, 
 * Expo Router
 * TypeScript
 
-### Persistência de Dados
+### Integração
 
-* AsyncStorage
+* Axios
+* JWT Authentication
+
+### Back-end
+
+* Java
+* Spring Boot
+* API REST
+
+### Persistência
+
+* AsyncStorage (armazenamento local do token)
 
 ---
 
 ## 🔄 CRUD Implementado
 
-Gerenciamento completo de colônias:
+Gerenciamento completo de colônias integrado com API Java:
 
-* Create (Criar Colônia)
-* Read (Visualizar Colônias)
-* Update (Atualizar Informações)
-* Delete (Excluir Colônia)
+* Create (POST)
+* Read (GET)
+* Update (PUT)
+* Delete (DELETE)
 
 ---
 
@@ -72,7 +84,6 @@ app/
 ├── login.tsx
 ├── register.tsx
 ├── home.tsx
-├── colonies.tsx
 ├── colony-create.tsx
 ├── colony-dashboard.tsx
 ├── missions.tsx
@@ -81,6 +92,10 @@ app/
 ├── alerts.tsx
 ├── ranking.tsx
 └── profile.tsx
+
+src/
+└── services/
+    └── api.ts
 ```
 
 ---
@@ -109,12 +124,12 @@ https://github.com/alc-joao/GS-Systhesis-Mobile
 
 ## 🎥 Vídeo Demonstrativo
 
-Adicionar o link do vídeo após a publicação no YouTube.
+https://www.youtube.com/watch?v=qSO1hHXoD6k
 
 ---
 
 ## 🌎 Global Solution
 
-Projeto acadêmico desenvolvido para a FIAP com o objetivo de aplicar conceitos de desenvolvimento mobile, experiência do usuário e gerenciamento inteligente de recursos em cenários de exploração espacial.
+Projeto acadêmico desenvolvido para a FIAP com o objetivo de aplicar conceitos de desenvolvimento mobile, experiência do usuário e integração com APIs REST.
 
-O Systhesis busca demonstrar como tecnologias digitais podem auxiliar na administração de ambientes extremos, contribuindo para estudos relacionados à sustentabilidade e à futura colonização espacial.
+O Systhesis busca demonstrar como tecnologias digitais podem auxiliar na administração de colônias espaciais, utilizando autenticação JWT, comunicação com API Java e operações CRUD para gerenciamento das bases criadas pelos usuários.
