@@ -10,24 +10,13 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "../src/services/api";
 
 type Planet = "Marte" | "Lua";
 type Difficulty = "Fácil" | "Média" | "Difícil";
-type ColonyStatus = "Estável" | "Alerta";
-
-type Colony = {
-  id: string;
-  name: string;
-  planet: Planet;
-  status: ColonyStatus;
-  day: number;
-  level: number;
-  xp: number;
-};
 
 type Star = {
   top: number;
@@ -36,12 +25,11 @@ type Star = {
   opacity: number;
 };
 
-const STORAGE_KEY = "@systhesis:colonies";
-
 export default function ColonyCreateScreen() {
   const [colonyName, setColonyName] = useState("");
   const [selectedPlanet, setSelectedPlanet] = useState<Planet>("Marte");
   const [difficulty, setDifficulty] = useState<Difficulty>("Média");
+  const [loading, setLoading] = useState(false);
 
   const stars = useMemo<Star[]>(
     () =>
@@ -61,27 +49,26 @@ export default function ColonyCreateScreen() {
     }
 
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      const currentColonies: Colony[] = saved ? JSON.parse(saved) : [];
+      setLoading(true);
 
-      const newColony: Colony = {
-        id: String(Date.now()),
-        name: colonyName.trim(),
-        planet: selectedPlanet,
-        status: "Estável",
-        day: 1,
-        level: 1,
-        xp: 0,
-      };
-
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify([newColony, ...currentColonies])
-      );
+      await api.post("/colonias", {
+        nome: colonyName.trim(),
+        planeta: selectedPlanet === "Lua" ? "LUA" : "MARTE",
+        setor: selectedPlanet === "Lua" ? "Setor Artemis" : "Setor Ares",
+        latitude: 0,
+        longitude: 0,
+      });
 
       router.replace("/home");
-    } catch {
-      Alert.alert("Erro", "Não foi possível criar a colônia.");
+    } catch (error) {
+      console.log("ERRO AO CRIAR COLÔNIA:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível criar a colônia. Verifique se a API está online."
+      );
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -210,9 +197,10 @@ export default function ColonyCreateScreen() {
         <Pressable
           style={[
             styles.startButton,
-            !colonyName.trim() && styles.startButtonDisabled,
+            (!colonyName.trim() || loading) && styles.startButtonDisabled,
           ]}
           onPress={handleCreateColony}
+          disabled={loading}
         >
           <LinearGradient
             colors={["#6366F1", "#3B82F6"]}
@@ -220,7 +208,9 @@ export default function ColonyCreateScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.startGradient}
           >
-            <Text style={styles.startText}>Iniciar Colônia</Text>
+            <Text style={styles.startText}>
+              {loading ? "Criando..." : "Iniciar Colônia"}
+            </Text>
           </LinearGradient>
         </Pressable>
       </ScrollView>
@@ -282,19 +272,9 @@ function DifficultyButton({ label, active, onPress }: DifficultyButtonProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#020617",
-    overflow: "hidden",
-  },
-  starsLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  star: {
-    position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "#E0F2FE",
-  },
+  container: { flex: 1, backgroundColor: "#020617", overflow: "hidden" },
+  starsLayer: { ...StyleSheet.absoluteFillObject },
+  star: { position: "absolute", borderRadius: 999, backgroundColor: "#E0F2FE" },
   content: {
     paddingHorizontal: 24,
     paddingTop: 58,
@@ -320,10 +300,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.4,
   },
-  headerGhost: {
-    width: 44,
-    height: 44,
-  },
+  headerGhost: { width: 44, height: 44 },
   planetsRow: {
     flexDirection: "row",
     justifyContent: "space-between",

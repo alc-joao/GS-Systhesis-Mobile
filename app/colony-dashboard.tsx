@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -9,18 +9,13 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { api } from "../src/services/api";
 
 type Planet = "Marte" | "Lua";
 type ColonyStatus = "Estável" | "Alerta";
-
-type Colony = {
-  id: string;
-  name: string;
-};
 
 type Star = {
   top: number;
@@ -28,8 +23,6 @@ type Star = {
   size: number;
   opacity: number;
 };
-
-const STORAGE_KEY = "@systhesis:colonies";
 
 export default function ColonyDashboardScreen() {
   const params = useLocalSearchParams<{
@@ -50,6 +43,9 @@ export default function ColonyDashboardScreen() {
   const colonyLevel = Number(params.level) || 1;
   const colonyXp = Number(params.xp) || 0;
 
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingUpdate, setLoadingUpdate] = useState(false);
+
   const stars = useMemo<Star[]>(
     () =>
       Array.from({ length: 260 }).map(() => ({
@@ -66,20 +62,54 @@ export default function ColonyDashboardScreen() {
       ? require("../assets/images/imgs/colheita-marte.png")
       : require("../assets/images/imgs/colheita-lua.png");
 
-  async function handleDeleteColony() {
+  async function handleUpdateColony() {
+    if (!colonyId) {
+      Alert.alert("Erro", "ID da colônia não encontrado.");
+      return;
+    }
+
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      const colonies: Colony[] = saved ? JSON.parse(saved) : [];
+      setLoadingUpdate(true);
 
-      const updatedColonies = colonies.filter(
-        (colony) => colony.id !== colonyId && colony.name !== colonyName
+      await api.put(`/colonias/${colonyId}`, {
+        nome: colonyName,
+        planeta: colonyPlanet,
+        status: colonyStatus,
+        dia: colonyDay,
+        nivel: colonyLevel,
+        xp: colonyXp,
+      });
+
+      Alert.alert("Sucesso", "Colônia atualizada com sucesso.");
+    } catch {
+      Alert.alert(
+        "Erro",
+        "Não foi possível atualizar a colônia. Verifique se a API está online."
       );
+    } finally {
+      setLoadingUpdate(false);
+    }
+  }
 
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedColonies));
+  async function handleDeleteColony() {
+    if (!colonyId) {
+      Alert.alert("Erro", "ID da colônia não encontrado.");
+      return;
+    }
+
+    try {
+      setLoadingDelete(true);
+
+      await api.delete(`/colonias/${colonyId}`);
 
       router.replace("/home");
     } catch {
-      Alert.alert("Erro", "Não foi possível excluir a colônia.");
+      Alert.alert(
+        "Erro",
+        "Não foi possível excluir a colônia. Verifique se a API está online."
+      );
+    } finally {
+      setLoadingDelete(false);
     }
   }
 
@@ -266,6 +296,16 @@ export default function ColonyDashboardScreen() {
           description="Proteja a colônia contra eventos extremos do ambiente."
         />
 
+        <Pressable
+          style={styles.updateButton}
+          onPress={handleUpdateColony}
+          disabled={loadingUpdate}
+        >
+          <Text style={styles.updateButtonText}>
+            {loadingUpdate ? "Atualizando..." : "Atualizar colônia"}
+          </Text>
+        </Pressable>
+
         <View style={styles.dangerCard}>
           <View style={styles.dangerIcon}>
             <Ionicons name="trash-outline" size={24} color="#F87171" />
@@ -274,12 +314,18 @@ export default function ColonyDashboardScreen() {
           <View style={styles.dangerContent}>
             <Text style={styles.dangerTitle}>Excluir colônia</Text>
             <Text style={styles.dangerDescription}>
-              Remove esta colônia da sua lista inicial.
+              Remove esta colônia da lista inicial.
             </Text>
           </View>
 
-          <Pressable style={styles.dangerButton} onPress={handleDeleteColony}>
-            <Text style={styles.dangerButtonText}>Apagar</Text>
+          <Pressable
+            style={styles.dangerButton}
+            onPress={handleDeleteColony}
+            disabled={loadingDelete}
+          >
+            <Text style={styles.dangerButtonText}>
+              {loadingDelete ? "..." : "Apagar"}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -707,6 +753,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 17,
+  },
+  updateButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "rgba(59,130,246,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  updateButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "900",
   },
   dangerCard: {
     borderRadius: 18,

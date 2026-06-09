@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -8,10 +9,10 @@ import {
   View,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { api } from "../src/services/api";
 
 type Planet = "Marte" | "Lua";
 type ColonyStatus = "Estável" | "Alerta";
@@ -33,31 +34,10 @@ type Star = {
   opacity: number;
 };
 
-const STORAGE_KEY = "@systhesis:colonies";
-
-const DEFAULT_COLONIES: Colony[] = [
-  {
-    id: "1",
-    name: "Base Ares-01",
-    planet: "Marte",
-    status: "Estável",
-    day: 23,
-    level: 12,
-    xp: 2450,
-  },
-  {
-    id: "2",
-    name: "Base Artemis",
-    planet: "Lua",
-    status: "Alerta",
-    day: 17,
-    level: 8,
-    xp: 1180,
-  },
-];
-
 export default function HomeScreen() {
   const [colonies, setColonies] = useState<Colony[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const stars = useMemo<Star[]>(
     () =>
@@ -70,19 +50,35 @@ export default function HomeScreen() {
     []
   );
 
+  function normalizeColony(item: any): Colony {
+    return {
+      id: String(item.id),
+      name: item.nome || item.name || "Colônia sem nome",
+      planet: item.planeta === "LUA" || item.planeta === "Lua" || item.planet === "Lua" ? "Lua" : "Marte",
+      status: item.status || "Estável",
+      day: Number(item.dia || item.day || 1),
+      level: Number(item.nivel || item.level || 1),
+      xp: Number(item.xp || 0),
+    };
+  }
+
   async function loadColonies() {
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      setLoading(true);
+      setApiError("");
 
-      if (saved !== null) {
-        setColonies(JSON.parse(saved));
-        return;
-      }
+      const response = await api.get("/colonias");
 
-      setColonies(DEFAULT_COLONIES);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_COLONIES));
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.content || [];
+
+      setColonies(data.map(normalizeColony));
     } catch {
-      setColonies(DEFAULT_COLONIES);
+      setColonies([]);
+      setApiError("Não foi possível carregar as colônias da API.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -164,6 +160,30 @@ export default function HomeScreen() {
             <Ionicons name="add" size={31} color="#FFFFFF" />
           </Pressable>
         </View>
+
+        {loading && (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator color="#60A5FA" />
+            <Text style={styles.loadingText}>Carregando colônias...</Text>
+          </View>
+        )}
+
+        {!!apiError && !loading && (
+          <View style={styles.errorCard}>
+            <Ionicons name="warning-outline" size={22} color="#F87171" />
+            <Text style={styles.errorText}>{apiError}</Text>
+          </View>
+        )}
+
+        {!loading && colonies.length === 0 && (
+          <View style={styles.emptyCard}>
+            <Ionicons name="planet-outline" size={28} color="#93C5FD" />
+            <Text style={styles.emptyTitle}>Nenhuma colônia encontrada</Text>
+            <Text style={styles.emptyText}>
+              Crie sua primeira base espacial para iniciar a simulação.
+            </Text>
+          </View>
+        )}
 
         {colonies.map((colony) => (
           <Pressable
@@ -336,6 +356,61 @@ const styles = StyleSheet.create({
     borderColor: "rgba(96,165,250,0.52)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingCard: {
+    borderRadius: 18,
+    backgroundColor: "rgba(15,23,42,0.82)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.22)",
+    padding: 18,
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
+  loadingText: {
+    color: "#CBD5E1",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  errorCard: {
+    borderRadius: 18,
+    backgroundColor: "rgba(127,29,29,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(248,113,113,0.35)",
+    padding: 16,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  errorText: {
+    color: "#FCA5A5",
+    fontSize: 13,
+    fontWeight: "800",
+    flex: 1,
+  },
+  emptyCard: {
+    borderRadius: 20,
+    backgroundColor: "rgba(2,6,23,0.68)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.28)",
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  emptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "900",
+    marginTop: 10,
+  },
+  emptyText: {
+    color: "#94A3B8",
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 6,
+    lineHeight: 18,
   },
   colonyCard: {
     width: "100%",
